@@ -1,0 +1,180 @@
+﻿@using System.Timers
+@using HiLoGame.Shared.Enums
+@inject SessionGaming sessao;
+@inject MisteryService _misteryService
+@inject NavigationManager navigation
+@implements IDisposable
+
+<div class="d-flex flex-grow-1 flex-wrap justify-center align-center">
+    <MudCard Elevation="25">
+        <MudCardHeader>
+            <MudText Align="Align.Center" Typo="Typo.h4">Guess the Mistery Number</MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            <div class="d-flex mt-3 gap-3">
+                <MudItem xs="12" sm="6">
+                    <MudNumericField Label="Minimum Value"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Immediate="true"
+                                     Disabled="true"
+                                     Value="@sessao.Room.MisteryNumberMin"></MudNumericField>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField Label="Maximum Value"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Immediate="true"
+                                     Disabled="true"
+                                     Value="@sessao.Room.MisteryNumberMax"></MudNumericField>
+                </MudItem>
+            </div>
+            <MudItem xs="12">
+                <MudNumericField Label="Guess Number"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Min="@sessao.Room.MisteryNumberMin"
+                                 Max="@sessao.Room.MisteryNumberMax"
+                                 @bind-Value="@sessao.Player.MisteryNumber"></MudNumericField>
+            </MudItem>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Class="mt-2"
+                       EndIcon="@Icons.Material.Filled.Send"
+                       OnClick="@GuessNumberPlayer">Guess</MudButton>
+        </MudCardActions>
+    </MudCard>
+</div>
+<MudCard Elevation="25"
+         Class="mt-7"
+         Style="background-color: var(--mud-palette-primary); color: var(--mud-palette-appbar-text)">
+    <MudCardContent>
+        <MudStack Row="true">
+            <MudItem xs="6">
+                <MudText Align="Align.Center">Timer : @elapse.Seconds</MudText>
+            </MudItem>
+            <MudItem xs="6">
+                <MudText Align="Align.Center">Interactions : @sessao.Player.Interaction</MudText>
+            </MudItem>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+<MudOverlay DarkBackground="true"
+            Visible="RoomState == RoomFase.Finish">
+    <MudText @ref="textFinishGame"></MudText>
+</MudOverlay>
+@code {
+    [Parameter]
+    public HubConnection HubConnection { get; set; }
+    [Parameter]
+    public RoomFase RoomState { get; set; }
+    [Parameter]
+    public EventCallback<RoomFase> RoomStateChanged { get; set; }
+
+    private PeriodicTimer _timer = default;
+    private TimeSpan elapse = default;
+    private MudText textFinishGame;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeHub();
+
+        await StartTimer();
+
+    }
+    protected async Task ChangeRoomState() =>
+        await RoomStateChanged.InvokeAsync(RoomState);
+
+    private async Task StartTimer()
+    {
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        while (await _timer.WaitForNextTickAsync())
+        {
+            elapse = (DateTime.Now - sessao.DataStart.Value);
+
+            Console.WriteLine("Elapse seconds : " + elapse.Seconds);
+
+            StateHasChanged();
+        }
+
+    }
+
+    private async Task InitializeHub()
+    {
+        if (HubConnection is not null)
+        {
+            HubConnection.On<ProposalMisteryNumber>("PlayerTryAgain", proposal =>
+            {
+                var message = "{0}: the mystery number is {1} the player's guess!";
+
+                if (proposal == ProposalMisteryNumber.High)
+                {
+                    message = string.Format(message, "HI", ">");
+                }
+                else if (proposal == ProposalMisteryNumber.Low)
+                {
+                    message = string.Format(message, "LO", "<");
+                }
+
+                snackbar.Add(message);
+
+                StateHasChanged();
+            });
+
+            HubConnection.On("PlayerWon", async () =>
+            {
+                snackbar.Add("You Winnnnnn !!!!! - Congratulations!", Severity.Success);
+
+                await EndGame();
+            });
+
+            HubConnection.On<string>("PlayerLoose", async (playerWon) =>
+            {
+                snackbar.Add("You loose!", Severity.Warning);
+                snackbar.Add($"Winner : {playerWon}");
+
+                await EndGame();
+            });
+
+            if (HubConnection.State == HubConnectionState.Disconnected)
+            {
+                await HubConnection.StartAsync();
+            }
+        }
+    }
+
+    public async Task GuessNumberPlayer()
+    {
+        sessao.Player.IncrementInterations();
+
+        await HubConnection.SendAsync("TryGuessNumber", sessao.Room.RoomId, sessao.Player.PlayerId, sessao.Player.MisteryNumber);
+    }
+
+    private async Task EndGame()
+    {
+        await ChangeRoomState();
+
+        _timer.Dispose();
+
+        RoomState = RoomFase.Finish;
+
+        StateHasChanged();
+
+        var timeRedirect = new PeriodicTimer(TimeSpan.FromSeconds(7));
+
+        await timeRedirect.WaitForNextTickAsync();
+
+        timeRedirect.Dispose();
+
+        navigation.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}

@@ -1,0 +1,138 @@
+﻿@inject SessionGaming sessao;
+@inject MisteryService _misteryService
+@inject NavigationManager navigation
+<MudPaper Class="pa-6"
+          Style="background-color: var(--mud-palette-primary); color: var(--mud-palette-appbar-text)"
+          Square="true"
+          Elevation="0">
+    <MudText Align="Align.Start"
+             Typo="Typo.h5">
+        @sessao.Player.Name
+    </MudText>
+</MudPaper>
+<MudCard Elevation="25" Class="rounded-lg mt-4 pt-2 pb-4">
+    <MudCardHeader>
+        <MudText Typo="Typo.h5" Align="Align.Center">Players</MudText>
+    </MudCardHeader>
+    <MudDivider />
+    <MudCardContent Style="max-height: 500px;overflow:auto;">
+        @foreach (var client in listaPlayers)
+        {
+            <MudChip Variant="Variant.Outlined" Color="@ColorPlayers">@client</MudChip>
+        }
+    </MudCardContent>
+</MudCard>
+@if (sessao.Player.IsHoster)
+{
+    
+<MudFab Color="Color.Primary"
+        Style="width: 100%;"
+        EndIcon="@Icons.Material.Filled.Start"
+        Class="mt-3"
+        OnClick="StartGame"
+        Label="Start"></MudFab>
+}
+@code {
+    [Parameter]
+    public string RoomId { get; set; }
+    [Parameter]
+    public RoomFase RoomState { get; set; }
+    [Parameter]
+    public EventCallback<RoomFase> RoomStateChanged { get; set; }
+
+    [Parameter]
+    public HubConnection HubConnection { get; set; }
+
+    private Random rnd = new Random();
+
+    protected List<string> listaPlayers = new List<string>();
+
+    public Color ColorPlayers
+    {
+        get
+        {
+            return (Color)rnd.Next(10);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        bool initialHub = true;
+
+        if (sessao.Player is null)
+        {
+            if (sessao.Room is null && sessao.Room.IsMultiplayer)
+            {
+                RoomState = RoomFase.GuessPlayer;
+                await ChangeRoomState();
+            }
+            else
+            {
+                snackbar.Add("You don't have permission to stay here.", Severity.Error);
+                navigation.NavigateTo("/");
+
+                initialHub = false;
+            }
+        }
+
+        if (initialHub)
+        {
+            InitializeHub();
+        }
+    }
+
+    protected async Task ChangeRoomState() =>
+            await RoomStateChanged.InvokeAsync(RoomState);
+
+    private void InitializeHub()
+    {
+        if (HubConnection is not null)
+        {
+            HubConnection.On<IEnumerable<string>>("Subscribed", (listSubscribed) =>
+            {
+                listaPlayers = listaPlayers.Concat(listSubscribed).ToList();
+
+                StateHasChanged();
+                Console.WriteLine($"IsSubscribed : " + (listSubscribed.Count() == 0));
+            });
+
+            HubConnection.On<string>("PlayerSubscribed", (name) =>
+            {
+                Console.WriteLine("PlayerSubscribed : " + name);
+                listaPlayers.Add(name);
+
+                StateHasChanged();
+            });
+
+            HubConnection.On<string>("PlayerUnsubscribed", (name) =>
+            {
+                Console.WriteLine("Unsibscribe : " + name);
+
+                listaPlayers.Remove(name);
+
+                StateHasChanged();
+            });
+        }
+    }
+
+    private async Task StartGame()
+    {
+        // enviar evento de fecho de sala
+        if (sessao.Room.CanJoinPlayer)
+        {
+            await _misteryService.CloseRoomToJoin(sessao.Room);
+
+            RoomState = RoomFase.Start;
+            sessao.DataStart = DateTime.Now;
+
+            await HubConnection.SendAsync("StartGame", sessao.Room.RoomId, sessao.DataStart);
+
+            await RoomStateChanged.InvokeAsync(RoomState);
+        }
+        else
+        {
+            snackbar.Add("You can't join the room!");
+            navigation.NavigateTo("/");
+        }
+    }
+}

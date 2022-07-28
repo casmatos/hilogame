@@ -1,0 +1,127 @@
+﻿@page "/room/{roomId}"
+@inject SessionGaming sessao;
+@inject MisteryService _misteryService
+@inject NavigationManager navigation
+
+@if (roomState == RoomFase.GuessPlayer)
+{
+    <GuessPlayer RoomId="@RoomId"
+             RoomStateChanged="roomStateChanegd"
+             RoomState="@roomState"></GuessPlayer>
+}
+else @if (roomState == RoomFase.Waiting)
+{
+    <WaitingRoom RoomId="@RoomId"
+             HubConnection="hubConnection"
+             @bind-RoomState="@roomState"></WaitingRoom>
+}
+else @if (roomState == RoomFase.Start)
+{
+    <PlayGame
+        @bind-RoomState="@roomState"
+        HubConnection="hubConnection"></PlayGame>
+}
+@code {
+    [Parameter]
+    public string RoomId { get; set; }
+
+    public RoomFase roomState { get; set; } = RoomFase.Unknown;
+
+    private HubConnection hubConnection = default!;
+
+    public bool IsConnected =>
+        hubConnection?.State == HubConnectionState.Connected;
+
+
+    public async Task roomStateChanegd(RoomFase changeState)
+    {
+        roomState = changeState;
+
+        if (changeState == RoomFase.Waiting)
+        {
+            await ConnectToHub();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var notPermitted = false;
+
+        var roomVerify = await _misteryService.GetInformationRoom(RoomId);
+
+        if (roomVerify is null)
+        {
+            notPermitted = true;
+        }
+        else
+        {
+            InitializeHub();
+
+            if (sessao.Player is null && sessao.Room is not null)
+            {
+                notPermitted = true;
+            }
+            else if (sessao.Player is null)
+            {
+                if (roomVerify.IsMultiplayer)
+                {
+                    roomState = RoomFase.GuessPlayer;
+                    sessao.SetRoom(roomVerify);
+                }
+                else
+                {
+                    notPermitted = true;
+                }
+            }
+            else if (sessao.Room is not null)
+            {
+                if (sessao.Room.IsMultiplayer)
+                {
+                    await ConnectToHub();
+                    roomState = RoomFase.Waiting;
+                }
+                else
+                {
+                    roomState = RoomFase.Start;
+                    sessao.DataStart = DateTime.Now;
+                    snackbar.Add("Let's go staring !", Severity.Success);
+
+                }
+            }
+        }
+        if (notPermitted)
+        {
+            snackbar.Add("You don't have permission to stay here.", Severity.Error);
+            navigation.NavigateTo("/");
+        }
+
+    }
+
+
+    private void InitializeHub()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(new Uri($"https://localhost:7228/misterynumber"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<DateTime>("GameStated", (startGame) =>
+        {
+            if (roomState == RoomFase.Waiting)
+            {
+                roomState = RoomFase.Start;
+                sessao.DataStart = startGame;
+
+                StateHasChanged();
+            }
+        });
+    }
+
+    private async Task ConnectToHub()
+    {
+        await hubConnection.StartAsync();
+
+        await hubConnection.SendAsync("Subscribe", sessao.Room.RoomId, sessao.Player.PlayerId);
+
+    }
+}

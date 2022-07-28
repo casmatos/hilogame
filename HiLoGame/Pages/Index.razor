@@ -1,0 +1,44 @@
+﻿@page "/"
+@inject SessionGaming Sessao;
+
+<PageTitle>Lobby</PageTitle>
+<MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">Lobby</MudText>
+@if (lobbyFase == LobbyFase.KindGame)
+{
+    <KindGame OnClickSinglePlayer="() => StartNewRoom(false)"
+          OnClickMultiPlayer="() => StartNewRoom(true)"></KindGame>
+}
+else @if (lobbyFase == LobbyFase.ConfigureGame)
+{
+    <ConfigureGame @bind-GameMistery="@Sessao"
+                   IsMultiplayer="@IsMultiplayer"></ConfigureGame>
+}
+@code
+{
+    private LobbyFase lobbyFase = LobbyFase.KindGame;
+    public bool IsMultiplayer { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        if (lobbyFase == LobbyFase.KindGame)
+        {
+            ResetLobby(false);
+        }
+
+        return base.OnInitializedAsync();
+    }
+
+    public void StartNewRoom(bool isMultiplayer)
+    {
+        ResetLobby(isMultiplayer);
+
+        IsMultiplayer = isMultiplayer;
+
+        lobbyFase = LobbyFase.ConfigureGame;
+    }
+
+    private void ResetLobby(bool isMultiplayer)
+    {
+        Sessao.ResetSession(isMultiplayer);
+    }
+}

@@ -1,0 +1,53 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HILoGame.WebApi", "HILoGame.WebApi\HILoGame.WebApi.csproj", "{4FF3624C-9AB0-4ADE-9675-7E955F12E8DE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{04E12EB9-45DD-4F12-B84B-75CA31460AC0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HiLoGame", "HiLoGame\HiLoGame.csproj", "{3AD7A4F7-8864-4BE8-8B85-2DCBB85CBB91}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HiLoGame.Shared", "HiLoGame.Shared\HiLoGame.Shared.csproj", "{51AB073D-CA33-46CA-9C0C-AC4C0A9BCBFB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{9DDAE18D-80ED-4C80-9B91-82565352CC1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HiLoGame.Tests", "HiLoGame.Tests\HiLoGame.Tests.csproj", "{EC395561-74C8-4134-9520-CF3BD0E14EF2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4FF3624C-9AB0-4ADE-9675-7E955F12E8DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FF3624C-9AB0-4ADE-9675-7E955F12E8DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FF3624C-9AB0-4ADE-9675-7E955F12E8DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FF3624C-9AB0-4ADE-9675-7E955F12E8DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3AD7A4F7-8864-4BE8-8B85-2DCBB85CBB91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3AD7A4F7-8864-4BE8-8B85-2DCBB85CBB91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3AD7A4F7-8864-4BE8-8B85-2DCBB85CBB91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3AD7A4F7-8864-4BE8-8B85-2DCBB85CBB91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51AB073D-CA33-46CA-9C0C-AC4C0A9BCBFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51AB073D-CA33-46CA-9C0C-AC4C0A9BCBFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51AB073D-CA33-46CA-9C0C-AC4C0A9BCBFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51AB073D-CA33-46CA-9C0C-AC4C0A9BCBFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC395561-74C8-4134-9520-CF3BD0E14EF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC395561-74C8-4134-9520-CF3BD0E14EF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC395561-74C8-4134-9520-CF3BD0E14EF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC395561-74C8-4134-9520-CF3BD0E14EF2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4FF3624C-9AB0-4ADE-9675-7E955F12E8DE} = {04E12EB9-45DD-4F12-B84B-75CA31460AC0}
+		{3AD7A4F7-8864-4BE8-8B85-2DCBB85CBB91} = {04E12EB9-45DD-4F12-B84B-75CA31460AC0}
+		{51AB073D-CA33-46CA-9C0C-AC4C0A9BCBFB} = {04E12EB9-45DD-4F12-B84B-75CA31460AC0}
+		{EC395561-74C8-4134-9520-CF3BD0E14EF2} = {9DDAE18D-80ED-4C80-9B91-82565352CC1B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {643AF410-0510-41D5-92AD-5631469E2740}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,121 @@
+﻿@inject MisteryService _misteryService
+@inject SessionGaming GameMistery;
+@inject NavigationManager navigation
+<div class="d-flex flex-grow-1 flex-wrap justify-center align-center">
+    <MudCard>
+        <MudCardContent>
+            @if (errors.Count > 0)
+            {
+                <MudStack Class="pb-4">
+                    @foreach (var erro in errors)
+                    {
+                        <MudAlert Severity="@erro.ErrorSeverity">@erro.Error</MudAlert>
+                    }
+                </MudStack>
+            }
+            <MudTextField Label="Player Name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          AutoFocus="true"
+                          Disabled="@savingData"
+                          T="string"
+                          @bind-Value="@GameMistery.Player.Name"
+                          MaxLength="15"></MudTextField>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Class="mt-2"
+                       Disabled="@savingData"
+                       EndIcon="@Icons.Material.Filled.JoinRight"
+                       OnClick="@CreateGuess">Join Room</MudButton>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    [Parameter]
+    public string RoomId { get; set; }
+    [Parameter]
+    public RoomFase RoomState { get; set; }
+    [Parameter]
+    public EventCallback<RoomFase> RoomStateChanged { get; set; }
+
+
+    List<ErrorLobby> errors = new();
+    bool savingData = default;
+
+    protected override Task OnInitializedAsync()
+    {
+        if (GameMistery.Player is null)
+        {
+
+            if (!GameMistery.Room.CanJoinPlayer)
+            {
+                snackbar.Add("You can't join the room!", Severity.Warning);
+                navigation.NavigateTo("/");
+            }
+
+            GameMistery.ResetPlayer();
+        }
+
+        return base.OnInitializedAsync();
+    }
+
+    protected async Task CreateGuess()
+    {
+        try
+        {
+            ValidateFields();
+
+            if (errors.Count == 0)
+            {
+                savingData = true;
+
+                var isOk = await _misteryService.JoinNewPlayer(GameMistery);
+
+                if (isOk)
+                {
+                    RoomState = RoomFase.Waiting;
+                    await RoomStateChanged.InvokeAsync(RoomState);
+                }
+            }
+            else
+            {
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            snackbar.Add("Error starting Mistery!", Severity.Error);
+        }
+        finally
+        {
+            savingData = false;
+        }
+    }
+
+    private void ValidateFields()
+    {
+        errors = new List<ErrorLobby>();
+
+        if (string.IsNullOrEmpty(GameMistery.Player.Name) || GameMistery.Player.Name.Length < 5)
+        {
+            if (GameMistery.Player.Name?.Length < 5)
+            {
+                errors.Add(new()
+                    {
+                        ErrorSeverity = Severity.Warning,
+                        Error = "Player name requires at least 5 characters!"
+                    });
+            }
+            else
+            {
+                errors.Add(new()
+                    {
+                        ErrorSeverity = Severity.Error,
+                        Error = "Player name is required!"
+                    });
+            }
+        }
+    }
+}

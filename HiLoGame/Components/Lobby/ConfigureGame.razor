@@ -1,0 +1,150 @@
+﻿@using HiLoGame.Network.Http
+@using HiLoGame.Shared.DTO.Http
+@inject MisteryService _misteryService
+@inject NavigationManager navigation
+
+<div class="d-flex flex-grow-1 flex-wrap justify-center align-center">
+    <MudCard>
+        <MudCardHeader>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Align="Align.Center" GutterBottom="true">Configure Game - @KindGame()</MudText>
+            </MudItem>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (errors.Count > 0)
+            {
+                <MudStack Class="pb-4">
+                    @foreach (var erro in errors)
+                    {
+                        <MudAlert Severity="@erro.ErrorSeverity">@erro.Error</MudAlert>
+                    }
+                </MudStack>
+            }
+            <MudTextField Label="Player Name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          AutoFocus="true"
+                          Disabled="@savingData"
+                          T="string"
+                          @bind-Value="@GameMistery.Player.Name"
+                          MaxLength="15"
+                          TextChanged="ChangePlayerData"></MudTextField>
+            <div class="d-flex mt-3 gap-3">
+                <MudItem xs="12" sm="6">
+                    <MudNumericField Label="Minimum Value"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Immediate="true"
+                                     Disabled="@savingData"
+                                     @bind-Value="@GameMistery.Room.MisteryNumberMin"
+                                     TextChanged="ChangePlayerData"></MudNumericField>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField Label="Maximum Value"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Immediate="true"
+                                     Disabled="@savingData"
+                                     @bind-Value="@GameMistery.Room.MisteryNumberMax"
+                                     TextChanged="ChangePlayerData"></MudNumericField>
+                </MudItem>
+            </div>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Class="mt-2"
+                       Disabled="@savingData"
+                       EndIcon="@Icons.Material.Filled.Send"
+                       OnClick="@StartMistery">Start Mistery</MudButton>
+        </MudCardActions>
+    </MudCard>
+</div>
+@code {
+    [Parameter]
+    public bool IsMultiplayer { get; set; }
+    [Parameter]
+    public SessionGaming GameMistery { get; set; }
+
+    [Parameter]
+    public EventCallback<SessionGaming> GameMisteryChanged { get; set; }
+
+    List<ErrorLobby> errors = new();
+    bool savingData = default;
+
+    protected string KindGame() =>
+        IsMultiplayer ? "Multi Player" : "Single Player";
+
+    protected async Task ChangePlayerData() =>
+        await GameMisteryChanged.InvokeAsync(GameMistery);
+
+    protected async Task StartMistery()
+    {
+        try
+        {
+            ValidateFields();
+
+            if (errors.Count == 0)
+            {
+                savingData = true;
+
+                GameMistery.Player.IsHoster = true;
+                GameMistery.Room.CanJoinPlayer = GameMistery.Room.IsMultiplayer ? true : false;
+
+                var isOk = await _misteryService.StartNewMistery(GameMistery);
+
+                if (isOk)
+                {
+                    navigation.NavigateTo($"room/{GameMistery.Room.RoomId}");
+                }
+            }
+            else
+            {
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            snackbar.Add("Error starting Mistery!", Severity.Error);
+        }
+        finally
+        {
+            savingData = false;
+        }
+    }
+
+    private void ValidateFields()
+    {
+        errors = new List<ErrorLobby>();
+
+        if (string.IsNullOrEmpty(GameMistery.Player.Name) || GameMistery.Player.Name.Length < 5)
+        {
+            if (GameMistery.Player.Name?.Length < 5)
+            {
+                errors.Add(new()
+                    {
+                        ErrorSeverity = Severity.Warning,
+                        Error = "Player name requires at least 5 characters!"
+                    });
+            }
+            else
+            {
+                errors.Add(new()
+                    {
+                        ErrorSeverity = Severity.Error,
+                        Error = "Player name is required!"
+                    });
+            }
+        }
+
+        if (GameMistery.Room.MisteryNumberMin > GameMistery.Room.MisteryNumberMax || GameMistery.Room.MisteryNumberMin == GameMistery.Room.MisteryNumberMax)
+        {
+            errors.Add(new()
+                {
+                    ErrorSeverity = Severity.Error,
+                    Error = "Minimum value need to be lower then Maximoum value"
+                });
+        }
+    }
+}
