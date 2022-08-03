@@ -3,27 +3,30 @@
 @inject MisteryService _misteryService
 @inject NavigationManager navigation
 
-@if (roomState == RoomFase.GuessPlayer)
-{
-    <GuessPlayer RoomId="@RoomId"
-             RoomStateChanged="roomStateChanegd"
-             RoomState="@roomState"></GuessPlayer>
-}
-else @if (roomState == RoomFase.Waiting)
-{
-    <WaitingRoom RoomId="@RoomId"
-             HubConnection="hubConnection"
-             @bind-RoomState="@roomState"></WaitingRoom>
-}
-else @if (roomState == RoomFase.Start)
-{
-    <PlayGame
-        @bind-RoomState="@roomState"
-        HubConnection="hubConnection"></PlayGame>
-}
+<ErrorBoundary @ref="errorBoundary">
+    @if (roomState == RoomFase.GuessPlayer)
+    {
+        <GuessPlayer RoomId="@RoomId"
+                 RoomStateChanged="roomStateChanegd"
+                 RoomState="@roomState"></GuessPlayer>
+    }
+    else @if (roomState == RoomFase.Waiting)
+    {
+        <WaitingRoom RoomId="@RoomId"
+                 HubConnection="hubConnection"
+                 @bind-RoomState="@roomState"></WaitingRoom>
+    }
+    else @if (roomState == RoomFase.Start)
+    {
+        <PlayGame @bind-RoomState="@roomState"
+              HubConnection="hubConnection"></PlayGame>
+    }
+</ErrorBoundary>
 @code {
     [Parameter]
     public string RoomId { get; set; }
+
+    private ErrorBoundary? errorBoundary;
 
     public RoomFase roomState { get; set; } = RoomFase.Unknown;
 
@@ -32,16 +35,6 @@ else @if (roomState == RoomFase.Start)
     public bool IsConnected =>
         hubConnection?.State == HubConnectionState.Connected;
 
-
-    public async Task roomStateChanegd(RoomFase changeState)
-    {
-        roomState = changeState;
-
-        if (changeState == RoomFase.Waiting)
-        {
-            await ConnectToHub();
-        }
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,6 +90,20 @@ else @if (roomState == RoomFase.Start)
 
     }
 
+    protected override void OnParametersSet()
+    {
+        errorBoundary?.Recover();
+    }
+
+    public async Task roomStateChanegd(RoomFase changeState)
+    {
+        roomState = changeState;
+
+        if (changeState == RoomFase.Waiting)
+        {
+            await ConnectToHub();
+        }
+    }
 
     private void InitializeHub()
     {
